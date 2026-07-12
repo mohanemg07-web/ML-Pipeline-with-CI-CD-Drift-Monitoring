@@ -2,7 +2,8 @@
 its predictions match the local model on 5 held-out test rows.
 
 Run in a fresh Python process. Reads credentials from the environment only.
-Tries ``models:/churn-xgboost@champion`` (alias) first, then the stage URI.
+Champion resolution (alias vs stage) is delegated to ``src.model_resolver`` —
+the single place that answers that question.
 """
 from __future__ import annotations
 
@@ -15,6 +16,7 @@ import mlflow
 import numpy as np
 
 from src import config, data
+from src.model_resolver import load_champion
 
 
 def main() -> int:
@@ -36,18 +38,10 @@ def main() -> int:
     local_model = joblib.load(config.MODELS_DIR / "model.joblib")
     local_proba = local_model.predict_proba(rows)[:, 1]
 
-    uri_alias = f"models:/{config.REGISTERED_MODEL_NAME}@{config.CHAMPION_ALIAS}"
-    uri_stage = f"models:/{config.REGISTERED_MODEL_NAME}/Production"
-    registry_model, used_uri = None, None
-    for uri in (uri_alias, uri_stage):
-        try:
-            registry_model = mlflow.sklearn.load_model(uri)
-            used_uri = uri
-            break
-        except Exception as exc:
-            print(f"could not load {uri}: {type(exc).__name__}")
-    if registry_model is None:
-        print("ABORT: champion not loadable from registry by alias or stage")
+    try:
+        registry_model, used_uri = load_champion()
+    except LookupError as exc:
+        print(f"ABORT: {exc}")
         return 3
 
     registry_proba = registry_model.predict_proba(rows)[:, 1]
