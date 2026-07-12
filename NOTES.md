@@ -56,3 +56,24 @@ single best run to DagsHub-hosted MLflow + registering the champion in the Model
 Registry is a **separate, credential-gated step**. DagsHub credentials are passed
 as exported env vars (`MLFLOW_TRACKING_USERNAME` / `MLFLOW_TRACKING_PASSWORD`) and
 are **never** written to `.env` or any committed file.
+
+## Checkpoint 1b: DagsHub registry (completed 2026-07-13)
+
+- Champion re-log run: <https://dagshub.com/mohanemg07-web/ML-Pipeline-with-CI-CD-Drift-Monitoring.mlflow/#/experiments/0/runs/4f8a1bd2f8ad4ebc843aa504ad70887e>
+  (baseline comparison run `b8475f52b49a46359cd01009499c8896` in the same experiment).
+- Registered model `churn-xgboost` **v1**; `verify_registry` resolved via the
+  **alias path** (`models:/churn-xgboost@champion`) — the stage fallback was not
+  needed. 5-row prediction comparison local vs registry: identical
+  (`max_abs_diff = 0.0`), exit code 0.
+- One orphaned `baseline-logreg-relog` run exists on DagsHub from a first attempt
+  that crashed printing MLflow's emoji status line to a cp1252 console
+  (`UnicodeEncodeError`). Fix: run registry scripts with `PYTHONUTF8=1` on
+  Windows. The orphan is harmless (nothing registered from it).
+
+## Repo name (changed from earlier plan)
+
+The GitHub repo is **`mohanemg07-web/ML-Pipeline-with-CI-CD-Drift-Monitoring`**
+(<https://github.com/mohanemg07-web/ML-Pipeline-with-CI-CD-Drift-Monitoring>),
+NOT the earlier planned "End-to-end-MLOps-Pipeline". The DagsHub repo uses the
+same name. Use this URL as `origin` at push time; `.env.example` and the README
+title are already aligned.

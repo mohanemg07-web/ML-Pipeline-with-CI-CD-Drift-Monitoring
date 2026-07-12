@@ -1,4 +1,4 @@
-# End-to-end MLOps Pipeline — Customer Churn
+# ML Pipeline with CI/CD & Drift Monitoring — Customer Churn
 
 > **Status: under construction.** Full architecture docs, quickstart, and a
 > **Measured Results** table (populated exclusively from `eval/results/*.json`)
