@@ -30,6 +30,25 @@ before first `up`. This install has NOT yet been verified against the Airflow
 2.10.4 constraint set; the first real `docker compose build` in Phase 3 is the
 verification point, and any pin adjustments will be recorded here.
 
+## Python 3.10 (local) vs 3.11 (Docker/Render) — pickle crossing versions
+
+Local training ran on Python **3.10.4** (only interpreter on this machine); the
+serving container and Airflow image are Python **3.11**. The XGBoost `.ubj`
+format is version-safe, but the model bundle is a pickled sklearn Pipeline
+(`model.joblib`) whose preprocessor crosses a Python minor version at load time.
+Identical pinned sklearn (1.5.2) on both sides makes this low-risk, **but it must
+be proven, not assumed**: the Phase 2 container smoke test MUST exercise a real
+`/predict` call through the preprocessor inside the 3.11 container — `/health`
+alone does not validate the cross-version load.
+
+## Metrics language (canonical, from eval/results/training_metrics.json)
+
+Champion XGBoost: **ROC-AUC 0.8527 / PR-AUC 0.6644** (held-out test, seed 42).
+Baseline LogReg: ROC-AUC 0.8495 / PR-AUC 0.6362. README/RESULTS must report both
+models and say honestly: the ROC-AUC margin over the linear baseline is small
+(~0.003), while the PR-AUC improvement (~0.028) is the operationally relevant
+gain for an imbalanced churn target. No spin beyond that.
+
 ## MLflow: local file store first, DagsHub second
 
 Phase 1 trains against a local `mlruns/` file store (gitignored). Re-logging the

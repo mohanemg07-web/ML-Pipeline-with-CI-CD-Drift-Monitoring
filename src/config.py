@@ -85,5 +85,5 @@ AUC_GATE = 0.80
 
 # --- MLflow ---
 EXPERIMENT_NAME = "churn-xgboost"
-REGISTERED_MODEL_NAME = "churn-classifier"
+REGISTERED_MODEL_NAME = "churn-xgboost"
 CHAMPION_ALIAS = "champion"
