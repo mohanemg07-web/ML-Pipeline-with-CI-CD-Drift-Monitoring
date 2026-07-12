@@ -1,5 +1,5 @@
 [project]
-name = "end-to-end-mlops-pipeline"
+name = "ml-pipeline-cicd-drift-monitoring"
 version = "0.1.0"
 description = "Customer churn prediction with CI/CD, drift-triggered retraining, and live monitoring"
 requires-python = ">=3.11"
