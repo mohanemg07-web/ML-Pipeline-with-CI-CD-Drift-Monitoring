@@ -1,0 +1,28 @@
+# Keep build contexts small: only src/, serving/, and requirements files are
+# consumed by the serving image; the Airflow image copies requirements-airflow.txt.
+.git/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Data / ML artifacts (bundled model lives in serving/model/, which IS shipped)
+data/
+mlruns/
+mlartifacts/
+models/
+eval/
+gx/
+
+# Not needed inside any image
+tests/
+dags/
+monitoring/
+docker-compose.yml
+docs/
+*.md
+.env*
+airflow-logs/
+logs/

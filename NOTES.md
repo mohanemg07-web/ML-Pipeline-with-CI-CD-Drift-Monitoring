@@ -70,6 +70,28 @@ are **never** written to `.env` or any committed file.
   (`UnicodeEncodeError`). Fix: run registry scripts with `PYTHONUTF8=1` on
   Windows. The orphan is harmless (nothing registered from it).
 
+## Checkpoint 2-local: serving container verified (2026-07-13)
+
+- `docker build -f serving/Dockerfile .` on python:3.11-slim, non-root user,
+  bundled `serving/model/model.joblib` as the primary model path
+  (`MODEL_SOURCE=registry` optionally pulls the champion via
+  `src.model_resolver` with a hard 5 s timeout and bundled fallback).
+- **3.10 → 3.11 pickle crossing PROVEN** (the risk flagged above): the same
+  high-risk payload scores `churn_probability = 0.890204` from the local
+  Python 3.10 venv AND from `/predict` inside the 3.11 container — the pickled
+  sklearn preprocessor loads and transforms identically across versions.
+- Memory under burst (300 singles + 20×100-row batches, 8 threads, container
+  capped with `--memory 512m`): peak **155.1 MiB / 512 MiB** at ~137% CPU;
+  idle ~152 MiB. p50/p95 single-predict latency 181/307 ms on this machine.
+- Image is ~1.94 GB unpacked: xgboost's manylinux wheel drags in
+  `nvidia-nccl-cu12`. RAM is unaffected; if deploy/pull time hurts, swap
+  `xgboost` -> `xgboost-cpu` (same import name) in requirements-serving.txt and
+  re-verify prediction parity before shipping.
+- Shadow mode: `CHALLENGER_TRAFFIC_PCT` + `serving/model/challenger.joblib`
+  (or `CHALLENGER_MODEL_PATH`); champion is always returned; JSONL comparisons
+  to `SHADOW_LOG_PATH` (`/app/shadow/comparisons.jsonl` in-container). Disabled
+  => `build_shadow()` returns None and the hot path costs one None-check.
+
 ## Repo name (changed from earlier plan)
 
 The GitHub repo is **`mohanemg07-web/ML-Pipeline-with-CI-CD-Drift-Monitoring`**

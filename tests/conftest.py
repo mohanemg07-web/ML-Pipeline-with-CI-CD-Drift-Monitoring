@@ -57,6 +57,30 @@ def synthetic_df() -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+# Realistic serving payload (high-churn-risk profile: short tenure, fiber,
+# month-to-month, electronic check). Shared by the API and shadow tests.
+API_PAYLOAD = {
+    "tenure": 5,
+    "MonthlyCharges": 85.7,
+    "TotalCharges": 428.5,
+    "SeniorCitizen": 0,
+    "gender": "Female",
+    "Partner": "No",
+    "Dependents": "No",
+    "PhoneService": "Yes",
+    "MultipleLines": "No",
+    "InternetService": "Fiber optic",
+    "OnlineSecurity": "No",
+    "OnlineBackup": "No",
+    "DeviceProtection": "No",
+    "TechSupport": "No",
+    "StreamingTV": "Yes",
+    "StreamingMovies": "No",
+    "Contract": "Month-to-month",
+    "PaperlessBilling": "Yes",
+    "PaymentMethod": "Electronic check",
+}
+
 FIXTURE_SAMPLE = config.REPO_ROOT / "tests" / "fixtures" / "sample.csv"
 
 
