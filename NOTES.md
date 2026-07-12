@@ -83,10 +83,11 @@ are **never** written to `.env` or any committed file.
 - Memory under burst (300 singles + 20×100-row batches, 8 threads, container
   capped with `--memory 512m`): peak **155.1 MiB / 512 MiB** at ~137% CPU;
   idle ~152 MiB. p50/p95 single-predict latency 181/307 ms on this machine.
-- Image is ~1.94 GB unpacked: xgboost's manylinux wheel drags in
-  `nvidia-nccl-cu12`. RAM is unaffected; if deploy/pull time hurts, swap
-  `xgboost` -> `xgboost-cpu` (same import name) in requirements-serving.txt and
-  re-verify prediction parity before shipping.
+- Serving pins `xgboost-cpu==2.1.3` (same `import xgboost` package, no
+  `nvidia-nccl-cu12` payload): image is **825 MB** unpacked vs 1.94 GB with
+  regular xgboost. Prediction parity after the swap verified to 12 decimal
+  places against the local regular-xgboost venv on two contrasting payloads;
+  burst peak RSS 132.9 MiB. Training (requirements.txt) keeps regular xgboost.
 - Shadow mode: `CHALLENGER_TRAFFIC_PCT` + `serving/model/challenger.joblib`
   (or `CHALLENGER_MODEL_PATH`); champion is always returned; JSONL comparisons
   to `SHADOW_LOG_PATH` (`/app/shadow/comparisons.jsonl` in-container). Disabled

@@ -4,7 +4,9 @@ fastapi==0.115.6
 uvicorn==0.32.1
 pydantic==2.10.4
 prometheus-client==0.21.1
-xgboost==2.1.3
+# xgboost-cpu: same `import xgboost` package, no nvidia-nccl-cu12 payload.
+# Training (requirements.txt) keeps regular xgboost.
+xgboost-cpu==2.1.3
 scikit-learn==1.5.2
 pandas==2.1.4
 numpy==1.26.4
