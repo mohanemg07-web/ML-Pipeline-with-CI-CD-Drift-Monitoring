@@ -4,7 +4,12 @@
 # mirroring a production split: monitoring/orchestration on one host, serving on another.
 
 x-airflow-common: &airflow-common
-  image: apache/airflow:2.10.4-python3.11
+  # Custom image bakes the DAG's ML/validation deps in at build time
+  # (see docker/airflow/Dockerfile). Build once with `docker compose build`.
+  build:
+    context: .
+    dockerfile: docker/airflow/Dockerfile
+  image: churn-airflow:2.10.4
   environment: &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
@@ -18,7 +23,7 @@ x-airflow-common: &airflow-common
     RENDER_DEPLOY_HOOK_URL: ${RENDER_DEPLOY_HOOK_URL:-}
     SERVING_BASE_URL: ${SERVING_BASE_URL:-}
     PYTHONPATH: /opt/airflow/repo
-    _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
+    # DAG deps are baked into the custom image, NOT installed at runtime.
   volumes:
     - ./dags:/opt/airflow/dags
     - ./src:/opt/airflow/repo/src

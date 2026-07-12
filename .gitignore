@@ -11,7 +11,11 @@ data/*
 models/
 mlruns/
 mlartifacts/
-# Exception: the slim bundled fallback model shipped inside the serving image
+# Exception: the slim bundled fallback model shipped inside the serving image.
+# Un-ignore the directory chain first, then its contents, so *.joblib/*.ubj
+# under serving/model/ stay committable even though those extensions are
+# ignored globally above. Proven with git check-ignore + git add.
+!serving/model/
 !serving/model/**
 
 # --- Great Expectations uncommitted artifacts ---
