@@ -1,0 +1,17 @@
+[project]
+name = "end-to-end-mlops-pipeline"
+version = "0.1.0"
+description = "Customer churn prediction with CI/CD, drift-triggered retraining, and live monitoring"
+requires-python = ">=3.11"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["gx", "monitoring"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "B", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

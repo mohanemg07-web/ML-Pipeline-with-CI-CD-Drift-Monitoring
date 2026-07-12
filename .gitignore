@@ -1,0 +1,49 @@
+# --- Data (never commit raw/production data) ---
+data/*
+!data/.gitkeep
+*.csv
+!tests/fixtures/*.csv
+
+# --- Model binaries & ML artifacts ---
+*.pkl
+*.joblib
+*.ubj
+models/
+mlruns/
+mlartifacts/
+# Exception: the slim bundled fallback model shipped inside the serving image
+!serving/model/**
+
+# --- Great Expectations uncommitted artifacts ---
+gx/uncommitted/
+
+# --- Secrets / env ---
+.env
+*.env
+!.env.example
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+*.egg-info/
+dist/
+build/
+
+# --- Airflow local runtime (docker-compose volumes) ---
+airflow-logs/
+logs/
+airflow.db
+standalone_admin_password.txt
+
+# --- OS / IDE ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

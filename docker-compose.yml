@@ -1,0 +1,104 @@
+# LOCAL-ONLY stack: Airflow (orchestration) + Prometheus + Grafana (monitoring).
+# This does NOT deploy to Render. Render hosts only the FastAPI serving container
+# (see serving/Dockerfile). Prometheus scrapes the LIVE Render /metrics endpoint,
+# mirroring a production split: monitoring/orchestration on one host, serving on another.
+
+x-airflow-common: &airflow-common
+  image: apache/airflow:2.10.4-python3.11
+  environment: &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+    AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "false"
+    # Pipeline code + config passed through from host .env (never committed)
+    MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI:-}
+    MLFLOW_TRACKING_USERNAME: ${MLFLOW_TRACKING_USERNAME:-}
+    MLFLOW_TRACKING_PASSWORD: ${MLFLOW_TRACKING_PASSWORD:-}
+    RENDER_DEPLOY_HOOK_URL: ${RENDER_DEPLOY_HOOK_URL:-}
+    SERVING_BASE_URL: ${SERVING_BASE_URL:-}
+    PYTHONPATH: /opt/airflow/repo
+    _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./src:/opt/airflow/repo/src
+    - ./gx:/opt/airflow/repo/gx
+    - ./data:/opt/airflow/repo/data
+    - ./eval:/opt/airflow/repo/eval
+    - ./monitoring:/opt/airflow/repo/monitoring
+    - airflow-logs:/opt/airflow/logs
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db migrate
+        airflow users create \
+          --username admin --password admin \
+          --firstname Admin --lastname User \
+          --role Admin --email admin@example.com || true
+
+  airflow-webserver:
+    <<: *airflow-common
+    command: webserver
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+volumes:
+  postgres-db:
+  airflow-logs:
+  prometheus-data:
+  grafana-data:
