@@ -1,0 +1,64 @@
+{
+  "generated_at": "2026-07-12T14:50:08.091668+00:00",
+  "seed": 42,
+  "python_version": "3.10.4",
+  "dataset": {
+    "n_total": 7043,
+    "n_train": 4929,
+    "n_val": 1057,
+    "n_test": 1057,
+    "target_balance_fit": 0.26545272302038087
+  },
+  "baseline_logreg": {
+    "test": {
+      "roc_auc": 0.8495150763007905,
+      "pr_auc": 0.6362008175844294,
+      "f1": 0.6238030095759234,
+      "precision": 0.5055432372505543,
+      "recall": 0.8142857142857143,
+      "threshold": 0.5
+    },
+    "mlflow_run_id": "f6fb6cabee7b4d779de9dafec311170e"
+  },
+  "xgboost": {
+    "n_trials": 25,
+    "best_params": {
+      "n_estimators": 400,
+      "max_depth": 3,
+      "learning_rate": 0.03338034147970685,
+      "subsample": 0.6050785532559382,
+      "colsample_bytree": 0.8034225897057347,
+      "min_child_weight": 8,
+      "gamma": 3.765104349811529,
+      "reg_lambda": 0.2904890910334394,
+      "reg_alpha": 0.0010552033488306432
+    },
+    "best_val_roc_auc": 0.8395458047474043,
+    "val": {
+      "roc_auc": 0.8647342884396668,
+      "pr_auc": 0.6846479679617337,
+      "f1": 0.6561151079136691,
+      "precision": 0.5507246376811594,
+      "recall": 0.8113879003558719,
+      "threshold": 0.5
+    },
+    "test": {
+      "roc_auc": 0.8527141937856222,
+      "pr_auc": 0.6643727169295549,
+      "f1": 0.6286509040333796,
+      "precision": 0.5148063781321185,
+      "recall": 0.8071428571428572,
+      "threshold": 0.5
+    },
+    "mlflow_run_id": "24470b9a4bc848558d3d18fbe5a97156"
+  },
+  "champion": "xgboost",
+  "champion_test_roc_auc": 0.8527141937856222,
+  "auc_gate": 0.8,
+  "gate_passed": true,
+  "mlflow": {
+    "tracking_uri": "file:///C:/Users/eshla/Downloads/ML%20Pipeline%20with%20CICD%20%26%20Drift%20Monitoring/mlruns",
+    "experiment": "churn-xgboost",
+    "best_run_id": "24470b9a4bc848558d3d18fbe5a97156"
+  }
+}
