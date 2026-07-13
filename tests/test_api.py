@@ -26,6 +26,10 @@ def test_health(client):
     body = r.json()
     assert body["status"] == "ok"
     assert body["model_source"] == "bundled:model.joblib"
+    # bundle identity: verifiable content hash, stable across calls
+    assert body["model_version"].startswith("file-sha256:")
+    assert len(body["model_version"]) == len("file-sha256:") + 12
+    assert body["model_run_id"] is None
     assert body["shadow_enabled"] is False
 
 

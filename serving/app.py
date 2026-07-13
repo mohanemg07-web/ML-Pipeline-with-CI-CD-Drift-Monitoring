@@ -24,7 +24,8 @@ from src import config
 
 
 def create_app() -> FastAPI:
-    model, model_source = load_serving_model()
+    model, model_info = load_serving_model()
+    model_source = model_info["model_source"]
     shadow = build_shadow()
 
     registry = CollectorRegistry()
@@ -80,9 +81,11 @@ def create_app() -> FastAPI:
 
     @app.get("/health")
     def health() -> dict:
+        # model_version is a verifiable identity: registry version number, or a
+        # content hash for the bundle — post-redeploy checks compare against it.
         return {
             "status": "ok",
-            "model_source": model_source,
+            **model_info,
             "shadow_enabled": shadow is not None,
         }
 
