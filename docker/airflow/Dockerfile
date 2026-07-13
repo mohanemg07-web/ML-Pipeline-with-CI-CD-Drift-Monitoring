@@ -20,4 +20,12 @@ ARG CONSTRAINT_URL="https://raw.githubusercontent.com/apache/airflow/constraints
 COPY requirements-airflow.txt /requirements-airflow.txt
 
 # Run as the airflow user (already default in the base image) for pip installs.
-RUN pip install --no-cache-dir -r /requirements-airflow.txt --constraint "${CONSTRAINT_URL}"
+# The official constraint set pins cryptography==42.0.8, but evidently 0.4.40
+# (kept in lockstep with requirements.txt for PSI parity) requires >=43.0.1.
+# Airflow core itself accepts cryptography>=41.0.0, so that single constraint
+# line is dropped and cryptography floats (resolved to 46.0.0 at first build;
+# pyopenssl/msal/gcloud-aio-auth declare tighter ranges but import cleanly —
+# verified in-image). Every other Airflow constraint stays enforced.
+RUN curl -sSL "${CONSTRAINT_URL}" -o /tmp/constraints.txt \
+    && sed -i '/^cryptography==/d' /tmp/constraints.txt \
+    && pip install --no-cache-dir -r /requirements-airflow.txt --constraint /tmp/constraints.txt

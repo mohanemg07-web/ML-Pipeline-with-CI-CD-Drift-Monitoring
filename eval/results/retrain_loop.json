@@ -1,0 +1,125 @@
+{
+  "generated_at": "2026-07-13T14:02:28.807562+00:00",
+  "batch_meta": {
+    "out": "/opt/airflow/repo/data/production_batch.csv",
+    "n": 1500,
+    "seed": 7,
+    "severity": 1.0,
+    "drifted_features": [
+      "tenure",
+      "MonthlyCharges",
+      "TotalCharges",
+      "InternetService",
+      "PaymentMethod"
+    ],
+    "shift_magnitudes": {
+      "tenure_shrink": 0.45,
+      "monthly_uplift": 0.3,
+      "fiber_switch_p": 0.5,
+      "echeck_switch_p": 0.45
+    },
+    "churn_rate": 0.2747
+  },
+  "sizes": {
+    "fit": 7036,
+    "batch_train": 1050,
+    "batch_eval": 450,
+    "orig_test": 1057
+  },
+  "drift": {
+    "psi_by_feature": {
+      "tenure": 2.73073,
+      "MonthlyCharges": 1.703045,
+      "TotalCharges": 0.436431,
+      "SeniorCitizen": 4.8e-05,
+      "gender": 0.0,
+      "Partner": 8e-06,
+      "Dependents": 0.0002,
+      "PhoneService": 0.000221,
+      "MultipleLines": 0.000377,
+      "InternetService": 0.353,
+      "OnlineSecurity": 3.2e-05,
+      "OnlineBackup": 0.000449,
+      "DeviceProtection": 9.3e-05,
+      "TechSupport": 0.000726,
+      "StreamingTV": 0.000124,
+      "StreamingMovies": 0.001088,
+      "Contract": 0.000184,
+      "PaperlessBilling": 0.000753,
+      "PaymentMethod": 0.369129
+    },
+    "threshold": 0.2,
+    "min_features": 2,
+    "drifted_features": [
+      "tenure",
+      "MonthlyCharges",
+      "TotalCharges",
+      "PaymentMethod",
+      "InternetService"
+    ],
+    "detected": true
+  },
+  "stale_champion": {
+    "uri": "models:/churn-xgboost@champion",
+    "auc_batch_eval": {
+      "roc_auc": 0.851536,
+      "pr_auc": 0.726964
+    },
+    "auc_orig_test": {
+      "roc_auc": 0.852714,
+      "pr_auc": 0.664373
+    }
+  },
+  "retrained": {
+    "best_params": {
+      "n_estimators": 250,
+      "max_depth": 5,
+      "learning_rate": 0.019721610970574007,
+      "subsample": 0.8056937753654446,
+      "colsample_bytree": 0.836965827544817,
+      "min_child_weight": 1
+    },
+    "auc_batch_eval": {
+      "roc_auc": 0.85662,
+      "pr_auc": 0.715037
+    },
+    "auc_orig_test": {
+      "roc_auc": 0.851685,
+      "pr_auc": 0.663676
+    },
+    "version": "2",
+    "run_id": "4f476fb4635e4c19a0a8cec33656e57b",
+    "champion_ref": "alias:champion"
+  },
+  "auc_on_drifted_eval": {
+    "stale_champion": 0.851536,
+    "retrained": 0.85662,
+    "recovery_delta": 0.005084
+  },
+  "gate": {
+    "auc_gate_passed": true,
+    "auc_gate_reason": "PASS: new_auc=0.8566 >= stale_auc=0.8515 - tol=0.02",
+    "smoke_passed": true,
+    "smoke_reason": "PASS: 5 probabilities in [0.3562, 0.8360]"
+  },
+  "redeploy": {
+    "outcome": "new_model_live",
+    "hook_status": 200,
+    "hook_fired_ts": "2026-07-13T14:01:28.342485+00:00",
+    "verified_ts": "2026-07-13T14:02:15.216588+00:00",
+    "polls": 1,
+    "last_health": {
+      "status": "ok",
+      "model_source": "registry:models:/churn-xgboost@champion",
+      "model_version": "2",
+      "model_run_id": "4f476fb4635e4c19a0a8cec33656e57b",
+      "shadow_enabled": false
+    }
+  },
+  "timings_s": {
+    "detection_to_retrain_done_s": 59.6,
+    "retrain_done_to_hook_fired_s": 60.0,
+    "hook_fired_to_verified_live_s": 46.9,
+    "total_detection_to_live_s": 166.5
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "generated_at": "2026-07-13T13:59:03.002952+00:00",
+  "n_reference": 5986,
+  "n_batch": 1500,
+  "psi_by_feature": {
+    "tenure": 2.73073,
+    "MonthlyCharges": 1.703045,
+    "TotalCharges": 0.436431,
+    "SeniorCitizen": 4.8e-05,
+    "gender": 0.0,
+    "Partner": 8e-06,
+    "Dependents": 0.0002,
+    "PhoneService": 0.000221,
+    "MultipleLines": 0.000377,
+    "InternetService": 0.353,
+    "OnlineSecurity": 3.2e-05,
+    "OnlineBackup": 0.000449,
+    "DeviceProtection": 9.3e-05,
+    "TechSupport": 0.000726,
+    "StreamingTV": 0.000124,
+    "StreamingMovies": 0.001088,
+    "Contract": 0.000184,
+    "PaperlessBilling": 0.000753,
+    "PaymentMethod": 0.369129
+  },
+  "threshold": 0.2,
+  "min_features": 2,
+  "drifted_features": [
+    "tenure",
+    "MonthlyCharges",
+    "TotalCharges",
+    "PaymentMethod",
+    "InternetService"
+  ],
+  "detected": true
+}
