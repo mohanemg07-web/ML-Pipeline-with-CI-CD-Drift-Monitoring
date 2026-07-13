@@ -302,3 +302,42 @@ commit `10b10c8` -> Actions run #3 green -> hook deploy
   configured-but-not-fired, documented honestly.
 - Grafana dashboard screenshot for the README taken from the file-provisioned
   dashboard while steady traffic + the 4xx spike were in view.
+
+## Phase 6: documentation as evidence (2026-07-14)
+
+README fully rewritten around the traceability rule; RESULTS.md added as the
+literal metric -> evidence-file -> producing-command contract. A scripted
+cross-check verified EVERY number appearing in README/RESULTS against the raw
+committed JSONs (32/32 checks pass), including indirect claims: "45 checks" is
+counted from the committed GE suite JSON, "825 MB" and "63.2%" trace to the
+checkpoints in this file plus the cited CI run URLs. Numbers without a
+committed source were deleted, not defended (none survived to need defending).
+CV bullets were drafted from measured numbers only and proposed in-session,
+NOT committed to the repo.
+
+## Post-project housekeeping (do after the repo goes quiet)
+
+- **DagsHub token** (used as MLFLOW_TRACKING_PASSWORD locally in `.env`, in
+  the local Airflow compose env, and as a Render env var): revoke it in
+  DagsHub settings when done. CONSEQUENCE ON RENDER: the next service boot
+  fails the registry champion pull and falls back to the bundled
+  `model.joblib` — by design, the service stays up, but it serves the BUNDLE
+  identity (a `file-sha256:` hash in `/health` and `churn_model_info`), not
+  registry v2. The Grafana model panel makes the downgrade visible
+  immediately. Either accept that for the demo or remove
+  `MODEL_SOURCE=registry` from Render so the fallback is explicit.
+- **Render deploy hook URL**: it is a capability URL (anyone holding it can
+  trigger deploys). It lives in the GitHub Actions secret and local `.env`.
+  Regenerate it in the Render dashboard if it may have leaked; update the
+  GitHub secret afterwards or CI deploys start failing at the last step.
+- **GitHub side**: `RENDER_DEPLOY_HOOK_URL` is the only Actions secret; GHCR
+  pushes use the ephemeral built-in token (nothing to revoke). The Windows
+  Git Credential Manager token on this machine is Mohan's normal login, not
+  project-specific.
+- **Local-only credentials** (Grafana admin/admin, Airflow admin/admin,
+  Postgres airflow/airflow) never leave docker-compose on this machine;
+  nothing to rotate.
+- **Keep the monitoring stack running or expect cold starts to return**: the
+  15s Prometheus scrape is what keeps the free instance warm. `docker compose
+  down` -> the service idles out again (~30s first request), which is fine —
+  just re-run the stack before demos.
