@@ -190,3 +190,25 @@ ruff installed alone first so lint fails before the heavy ML-stack install.
   exact SHA, not the bytes Render runs. Same Dockerfile, same commit, same
   pinned deps, so drift risk is negligible; the production-grade upgrade is
   switching the Render service to image-backed deploys pulling the GHCR tag.
+
+## Checkpoint 4: first GitHub Actions run GREEN (2026-07-13)
+
+Run #1 on `0709754`, all jobs green:
+<https://github.com/mohanemg07-web/ML-Pipeline-with-CI-CD-Drift-Monitoring/actions/runs/29259002268>
+
+- **Timings**: total **3m17s** — checks 2m0s, build-and-deploy 1m9s.
+- **Measured coverage (from the CI log, Python 3.11): 63.2%** (753 stmts,
+  277 miss, src/ + serving/). Local 3.10 run was 63.3% on 752 stmts — the
+  1-statement delta is the argv line added to `src/validate.py`'s `__main__`
+  block for the CI fixture path (uncovered by design; tests call the API, not
+  the CLI). 56 passed in 28.56s in CI.
+- **Quality gate PASSED** in CI: champion test ROC-AUC 0.8527 >= gate 0.80.
+- **Deploy**: CI's Render deploy hook fired and went live; `/health` confirms
+  registry champion **v2**. Auto-deploy is now **OFF** in the Render dashboard
+  — CI is the only path to production.
+- **Process miss (recorded per evidence-before-done)**: the Phase 4
+  deliverables (ci.yml, validate.py argv, NOTES section) were initially left
+  uncommitted when the phase was reported "ready" — caught via `git status`
+  before push. Rule reaffirmed: a phase isn't done until its artifacts are
+  committed; "STOP before push" means stop *after* the commit exists, not
+  before it.
