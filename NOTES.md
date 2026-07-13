@@ -341,3 +341,16 @@ NOT committed to the repo.
   15s Prometheus scrape is what keeps the free instance warm. `docker compose
   down` -> the service idles out again (~30s first request), which is fine —
   just re-run the stack before demos.
+
+## Completion gate, first run: one real catch (2026-07-14)
+
+The fresh-clone gate did its job: README/RESULTS cited
+`data/production_batch.meta.json`, but `data/` is deliberately never committed
+(Phase 1 gitignore rule) — in a fresh clone that link 404s. The Phase 6
+cross-check missed it because it ran in the working tree, where the untracked
+file exists. Fix: citations rewired to the identical `batch_meta` block inside
+the committed `eval/results/retrain_loop.json`; the data-hygiene rule stays
+intact. Lesson recorded: evidence links must be validated against `git
+ls-files`, not the working directory. Gate re-run in the clone with the fix:
+34/34 PASS (32 metric checks + referenced-paths + PNGs); live /health and
+/predict verified responding (warm, 0.37 s, registry v2).

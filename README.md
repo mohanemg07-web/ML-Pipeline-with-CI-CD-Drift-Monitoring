@@ -152,9 +152,10 @@ docker compose up -d airflow-init airflow-webserver airflow-scheduler
 
 - **The drift is simulated, with documented severity.** `src/simulate_drift.py`
   applies a covariate shift (tenure shrink 0.45, monthly-charges uplift 0.3,
-  fiber-switch p=0.5, e-check-switch p=0.45; parameters recorded in
-  [`production_batch.meta.json`](data/production_batch.meta.json)). Real concept
-  drift — labels moving — is not demonstrated here.
+  fiber-switch p=0.5, e-check-switch p=0.45; parameters recorded in the
+  `batch_meta` block of [`retrain_loop.json`](eval/results/retrain_loop.json) —
+  `data/` itself is deliberately never committed). Real concept drift — labels
+  moving — is not demonstrated here.
 - **Free-tier constraints are real and visible in the numbers**: 0.1 CPU and
   512 MB RAM on Render (client-observed latency is RTT-dominated; the instance
   spins down when idle, hence the measured 32.5 s cold start), and continuous
