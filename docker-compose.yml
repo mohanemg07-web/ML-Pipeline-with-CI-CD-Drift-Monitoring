@@ -91,6 +91,23 @@ services:
       - "9090:9090"
     restart: unless-stopped
 
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    ports:
+      - "9093:9093"
+    restart: unless-stopped
+
+  # Webhook receiver proving the alert path end to end (see alertmanager.yml —
+  # no pager service is wired; the honest claim is "webhook alerting").
+  alert-webhook:
+    image: python:3.11-slim
+    command: ["python", "/app/alert_webhook.py"]
+    volumes:
+      - ./monitoring/alert_webhook.py:/app/alert_webhook.py:ro
+    restart: unless-stopped
+
   grafana:
     image: grafana/grafana:11.4.0
     environment:

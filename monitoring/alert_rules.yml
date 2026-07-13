@@ -1,2 +1,61 @@
-# Placeholder — real alert rules (P99 latency + error rate) land in Phase 5.
-groups: []
+# Alert rules for the live churn-serving endpoint.
+#
+# Threshold rationale (anchored to MEASURED Phase 2 baselines, eval/results/
+# load_test.json): warm client-observed P99 was 696 ms including India->
+# Singapore RTT; the in-process scoring histogram runs well below that. 1.5 s
+# sustained P99 on in-process scoring therefore means real pathology (CPU
+# starvation on the 0.1-CPU instance, memory pressure), not noise.
+#
+# Status-code semantics (churn_http_requests_total{endpoint,code}):
+# - ChurnHigh5xxRate counts ONLY code=~"5..": server faults. Invalid payloads
+#   are 422 (client error) and deliberately do NOT fire it.
+# - ChurnClientErrorSpike (4xx share on matched routes) is the honestly
+#   demonstrable rule: a burst of invalid payloads fires it for real, proving
+#   the Prometheus -> Alertmanager -> webhook pipeline end to end. It is also a
+#   legitimate production signal (broken client / schema mismatch after deploy).
+#   endpoint!="unmatched" keeps internet scanners' 404s from firing it.
+groups:
+  - name: churn-serving
+    rules:
+      - alert: ChurnServingDown
+        expr: up{job="churn-serving-live"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Live serving endpoint unreachable"
+          description: "Prometheus has failed to scrape the Render /metrics endpoint for 3 minutes."
+
+      - alert: ChurnHighP99Latency
+        expr: >
+          histogram_quantile(0.99,
+            sum by (le) (rate(churn_predict_latency_seconds_bucket[5m]))
+          ) > 1.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "P99 scoring latency above 1.5s for 5m"
+          description: "In-process P99 is {{ $value | printf \"%.2f\" }}s; Phase 2 baseline had client-observed P99 at 0.696s, so sustained 1.5s in-process is pathological."
+
+      - alert: ChurnHigh5xxRate
+        expr: >
+          sum(rate(churn_http_requests_total{code=~"5.."}[5m]))
+            / sum(rate(churn_http_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Server error rate above 5% for 5m"
+          description: "{{ $value | humanizePercentage }} of requests are 5xx (server faults only; 4xx excluded)."
+
+      - alert: ChurnClientErrorSpike
+        expr: >
+          sum(rate(churn_http_requests_total{code=~"4..", endpoint!="unmatched"}[2m]))
+            / sum(rate(churn_http_requests_total{endpoint!="unmatched"}[2m])) > 0.30
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Client error (4xx) share above 30% on matched routes for 2m"
+          description: "{{ $value | humanizePercentage }} of matched-route requests are 4xx — broken client or request-schema mismatch."

@@ -103,3 +103,29 @@ def test_metrics_exposed(client):
     assert 'churn_predictions_total{endpoint="single"}' in r.text
     assert "churn_predict_latency_seconds" in r.text
     assert "churn_prediction_probability_bucket" in r.text
+
+
+def test_metrics_model_identity(client):
+    """churn_model_info must carry the same verifiable identity as /health."""
+    health = client.get("/health").json()
+    r = client.get("/metrics")
+    line = next(
+        ln for ln in r.text.splitlines() if ln.startswith("churn_model_info{")
+    )
+    assert f'model_version="{health["model_version"]}"' in line
+    assert 'model_source="bundled:model.joblib"' in line
+    assert line.endswith(" 1.0")
+
+
+def test_metrics_count_http_statuses(client):
+    """Invalid payloads (422) must be visible to the error-rate rules."""
+    client.post("/predict", json={**API_PAYLOAD, "tenure": -1})
+    client.post("/predict", json=API_PAYLOAD)
+    text = client.get("/metrics").text
+    assert 'churn_http_requests_total{code="422",endpoint="/predict"}' in text
+    assert 'churn_http_requests_total{code="200",endpoint="/predict"}' in text
+    # unknown paths must collapse to one label, not raw URLs (scanner traffic)
+    client.get("/definitely/not/a/route")
+    text = client.get("/metrics").text
+    assert 'churn_http_requests_total{code="404",endpoint="unmatched"}' in text
+    assert "/definitely/not/a/route" not in text

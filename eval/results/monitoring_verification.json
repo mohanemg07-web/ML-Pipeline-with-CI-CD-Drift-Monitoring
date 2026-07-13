@@ -1,0 +1,133 @@
+{
+  "phase": 5,
+  "generated_at": "2026-07-13T15:29:08+00:00",
+  "live_endpoint": "https://ml-pipeline-with-ci-cd-drift-monitoring.onrender.com",
+  "stack": "local docker-compose: prometheus v2.55.1 (15s scrape), alertmanager v0.27.0, grafana 11.4.0, alert-webhook (stdlib logger)",
+  "config_validation": {
+    "promtool_check_config": "SUCCESS (prometheus.yml valid, 1 rule file, 4 rules found)",
+    "amtool_check_config": "SUCCESS (1 receiver: local-webhook)",
+    "pytest": "58 passed (2 new: model-identity metric, HTTP status counting incl. 422/404-cardinality)"
+  },
+  "stage1_pre_deploy": {
+    "checks": [
+      {
+        "check": "prometheus_target_up",
+        "timestamp": "2026-07-13T15:24:46+00:00",
+        "query": "GET /api/v1/targets churn-serving-live",
+        "value": {
+          "health": "up",
+          "instance": "ml-pipeline-with-ci-cd-drift-monitoring.onrender.com:443",
+          "lastScrapeDuration_s": 0.148
+        },
+        "ok": true
+      },
+      {
+        "check": "live_traffic_burst",
+        "timestamp": "2026-07-13T15:24:51+00:00",
+        "query": "POST https://ml-pipeline-with-ci-cd-drift-monitoring.onrender.com/predict x40 (valid varied payloads, seeded rng)",
+        "value": {
+          "status_counts": {
+            "200": 40
+          },
+          "duration_s": 5.5,
+          "client_p50_ms": 106.8,
+          "client_max_ms": 428.4
+        },
+        "ok": true
+      },
+      {
+        "check": "counter_moved_with_traffic",
+        "timestamp": "2026-07-13T15:25:26+00:00",
+        "query": "sum(churn_predictions_total{endpoint=\"single\"}) before vs after burst",
+        "value": {
+          "before": 0.0,
+          "after": 40.0,
+          "delta": 40.0
+        },
+        "ok": true,
+        "note": "delta may exceed burst size if other traffic hit the public endpoint"
+      },
+      {
+        "check": "p99_scoring_latency_visible",
+        "timestamp": "2026-07-13T15:27:39+00:00",
+        "query": "histogram_quantile(0.99, sum by (le) (rate(churn_predict_latency_seconds_bucket[5m])))",
+        "value": {
+          "p50_s": 0.0035,
+          "p99_s": 0.0098
+        },
+        "ok": true,
+        "note": "First attempt returned NaN honestly: a 5.5s one-shot burst against a freshly-woken instance lands between 15s scrapes and newly-born counter series have no in-window increase, so rate()=0. Re-measured under steady ~2 req/s for 75s (121 requests): in-process P99 9.8ms / P50 3.5ms - far below the 1.5s alert threshold, confirming the Phase 2 client-observed 696ms P99 was RTT-dominated."
+      },
+      {
+        "check": "probability_histogram_moving",
+        "timestamp": "2026-07-13T15:25:26+00:00",
+        "query": "sum(rate(churn_prediction_probability_count[5m]))",
+        "value": {
+          "rate_per_s": 0.1496
+        },
+        "ok": true
+      },
+      {
+        "check": "grafana_provisioned",
+        "timestamp": "2026-07-13T15:25:26+00:00",
+        "query": "GET /api/datasources + /api/dashboards/uid/churn-serving",
+        "value": {
+          "datasources": [
+            {
+              "name": "Prometheus",
+              "type": "prometheus",
+              "uid": "prometheus"
+            }
+          ],
+          "dashboard_found": true,
+          "dashboard_title": "Churn Serving \u2014 Live (Render)",
+          "panel_count": 8
+        },
+        "ok": true
+      },
+      {
+        "check": "alertmanager_wired",
+        "timestamp": "2026-07-13T15:25:27+00:00",
+        "query": "GET alertmanager /api/v2/status, /api/v2/alerts; prometheus /api/v1/rules",
+        "value": {
+          "alertmanager_version": "0.27.0",
+          "cluster_status": "ready",
+          "active_alerts": 0,
+          "rules_loaded": [
+            "ChurnServingDown",
+            "ChurnHighP99Latency",
+            "ChurnHigh5xxRate",
+            "ChurnClientErrorSpike"
+          ]
+        },
+        "ok": true,
+        "note": "baseline: 0 alerts firing before the deliberate 4xx demonstration (stage 2)"
+      },
+      {
+        "check": "new_metrics_in_serving_container_local",
+        "timestamp": "2026-07-13T15:29:08+00:00",
+        "query": "docker build serving/Dockerfile; POST valid + invalid(422) + GET unknown path(404); GET /metrics",
+        "value": {
+          "churn_http_requests_total": {
+            "{code=\"200\",endpoint=\"/predict\"}": 1.0,
+            "{code=\"422\",endpoint=\"/predict\"}": 1.0,
+            "{code=\"404\",endpoint=\"unmatched\"}": 1.0
+          },
+          "churn_model_info": "{model_source=\"bundled:model.joblib\",model_version=\"file-sha256:c7eddac86c80\",model_run_id=\"None\"} 1.0",
+          "matches_health": true
+        },
+        "ok": true,
+        "note": "Pre-deploy proof: these metrics do NOT exist on the live endpoint yet - they ship with this commit through CI. Locally the bundle path shows the file hash; live (MODEL_SOURCE=registry) the same gauge will carry model_version=2."
+      }
+    ]
+  },
+  "stage2_post_deploy": {
+    "status": "PENDING - requires the instrumentation commit to deploy via CI (user pushes)",
+    "planned_checks": [
+      "churn_model_info on the LIVE endpoint shows model_version=2 (registry champion), matching /health",
+      "ChurnClientErrorSpike fired for real via a sustained burst of invalid payloads (422s) against the live /predict",
+      "Alertmanager /api/v2/alerts captured while firing; webhook receiver log captured",
+      "ChurnHigh5xxRate remains configured-but-not-fired: it counts only code=~'5..' (server faults); invalid payloads are 422s and deliberately cannot fire it, and we do not crash production to force a 5xx. Its delivery path (Prometheus->Alertmanager->webhook) is identical to the fired 4xx rule."
+    ]
+  }
+}

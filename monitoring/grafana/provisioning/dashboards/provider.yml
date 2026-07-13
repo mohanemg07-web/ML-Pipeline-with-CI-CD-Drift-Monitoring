@@ -1,0 +1,11 @@
+# File-provisioned dashboards: every .json in this directory is loaded.
+apiVersion: 1
+
+providers:
+  - name: churn-dashboards
+    type: file
+    disableDeletion: true
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards
+      foldersFromFilesStructure: false

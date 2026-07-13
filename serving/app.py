@@ -8,11 +8,12 @@ duplicate-metric errors across instances.
 from __future__ import annotations
 
 import pandas as pd
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Request, Response
 from prometheus_client import (
     CONTENT_TYPE_LATEST,
     CollectorRegistry,
     Counter,
+    Gauge,
     Histogram,
     generate_latest,
 )
@@ -52,12 +53,51 @@ def create_app() -> FastAPI:
         "Rows scored by the shadow challenger",
         registry=registry,
     )
+    http_requests = Counter(
+        "churn_http_requests_total",
+        "HTTP requests by matched route and status code (error-rate source)",
+        ["endpoint", "code"],
+        registry=registry,
+    )
+    # Identity lives in the labels; the value is a constant 1. The dashboard's
+    # model-version panel reads this — it must agree with /health.
+    model_identity = Gauge(
+        "churn_model_info",
+        "Identity of the loaded model: source, registry version (or bundle hash), run id",
+        ["model_source", "model_version", "model_run_id"],
+        registry=registry,
+    )
+    model_identity.labels(
+        model_source=model_source,
+        model_version=str(model_info.get("model_version")),
+        model_run_id=str(model_info.get("model_run_id")),
+    ).set(1)
 
     app = FastAPI(
         title="Churn prediction service",
         version="0.1.0",
         description="XGBoost churn classifier with Prometheus metrics and shadow mode",
     )
+
+    def _route_label(request: Request) -> str:
+        # Matched route template, NOT the raw URL path: the public endpoint gets
+        # scanned constantly, and raw paths would blow up label cardinality.
+        route = request.scope.get("route")
+        return getattr(route, "path", "unmatched")
+
+    @app.middleware("http")
+    async def count_http_requests(request: Request, call_next):
+        try:
+            response = await call_next(request)
+        except Exception:
+            # Unhandled errors become 500s upstream; count them before re-raising
+            # so the 5xx error-rate alert sees crashes, not just handled errors.
+            http_requests.labels(endpoint=_route_label(request), code="500").inc()
+            raise
+        http_requests.labels(
+            endpoint=_route_label(request), code=str(response.status_code)
+        ).inc()
+        return response
 
     def _score(records: list[CustomerFeatures], endpoint: str) -> list[Prediction]:
         frame = pd.DataFrame(

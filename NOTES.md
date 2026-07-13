@@ -212,3 +212,70 @@ Run #1 on `0709754`, all jobs green:
   before push. Rule reaffirmed: a phase isn't done until its artifacts are
   committed; "STOP before push" means stop *after* the commit exists, not
   before it.
+
+## Phase 5: monitoring design (Prometheus + Grafana + Alertmanager, local)
+
+**Architecture split restated**: serving lives on Render; monitoring and
+orchestration live in the LOCAL docker-compose stack. Local Prometheus scrapes
+the live Render `/metrics` over the public internet every 15s (job
+`churn-serving-live`, HTTPS with normal CA verification). This mirrors the
+production pattern of monitoring on separate infrastructure — and 15s scraping
+keeps the free instance permanently warm, which is acceptable only because the
+Phase 2 cold-start measurement (32.5 s) was captured and committed FIRST (the
+phase-ordering constraint at the top of this file).
+
+**Why scraping needs no auth**: `/metrics` is deliberately public — it exposes
+only aggregate counters/histograms (request counts, latency buckets,
+probability distribution, model identity labels). No request payloads, no
+PII, no credentials. Anyone scraping it learns the service's traffic shape,
+which for a portfolio project is a feature, not a leak.
+
+**Serving instrumentation added this phase** (`serving/app.py`):
+`churn_http_requests_total{endpoint,code}` via middleware — the label is the
+MATCHED ROUTE TEMPLATE, never the raw URL path, so internet scanners hitting a
+public endpoint collapse into `endpoint="unmatched"` instead of exploding
+label cardinality; unhandled exceptions are counted as 500 before re-raising.
+And `churn_model_info{model_source,model_version,model_run_id} = 1` — the
+dashboard's model-version panel and `/health` now report the same verifiable
+identity.
+
+**Alert thresholds anchored to measured baselines**:
+- `ChurnHighP99Latency` fires at 1.5 s in-process P99 sustained 5 m. Measured
+  reality: in-process P99 under steady live traffic is **9.8 ms** (P50 3.5 ms)
+  — the Phase 2 client-observed 696 ms P99 was RTT-dominated (India→
+  Singapore). 1.5 s in-process therefore means genuine pathology (CPU
+  starvation on the 0.1-CPU instance), not noise.
+- `ChurnHigh5xxRate` fires at >5% server faults over 5 m. It counts ONLY
+  `code=~"5.."` — invalid payloads are 422s and cannot fire it.
+- `ChurnClientErrorSpike` (>30% 4xx on matched routes, 2 m) is both a real
+  signal (broken client / schema mismatch post-deploy) and the honestly
+  demonstrable rule: we fire it for real with an invalid-payload burst rather
+  than crashing production to manufacture a 5xx. Same delivery path as the
+  5xx rule, which stays configured-but-not-fired.
+- `ChurnServingDown` (`up == 0` for 3 m) catches scrape failure outright.
+
+**Alerting is Alertmanager → webhook, and that is the whole claim**: the
+receiver is a committed stdlib logger (`monitoring/alert_webhook.py`) running
+in compose. No PagerDuty/Opsgenie/Slack is wired; a pager integration would
+replace that one receiver block in `alertmanager.yml`.
+
+**Grafana is file-provisioned only** (datasource + dashboard provider + the
+committed dashboard JSON under `monitoring/grafana/provisioning/`) — a fresh
+`docker compose up` yields the full dashboard with zero clickops.
+
+**Measurement lesson recorded in the verification JSON**: a short one-shot
+burst against a freshly-woken instance can land entirely between 15 s scrapes,
+and newly-born counter series have no in-window increase, so `rate()` = 0 and
+`histogram_quantile` = NaN. Quantile evidence must come from sustained
+traffic (~2 req/s for 75 s here). Corollary: the first scrape after an idle
+spin-down times out (cold start 32.5 s > 10 s scrape timeout) — the scrape
+itself wakes the service and the target recovers within ~2 cycles; with
+continuous 15 s scraping this only ever happens once.
+
+**Two-stage verification (sequencing forced by CI-only deploys)**: the new
+metrics ship through the pipeline, so stage 1 (pre-deploy, committed here)
+verifies the live target UP, existing metrics moving under live traffic, and
+the new metrics in a locally-built container; stage 2 (post-deploy) verifies
+`churn_model_info` shows registry v2 LIVE, fires `ChurnClientErrorSpike` for
+real, and captures Alertmanager state. `eval/results/monitoring_verification.json`
+records both stages explicitly.

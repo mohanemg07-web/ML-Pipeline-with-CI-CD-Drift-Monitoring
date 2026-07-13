@@ -1,16 +1,33 @@
-# Placeholder — completed in Phase 5.
-# Prometheus (running locally in docker-compose) scrapes the LIVE Render
-# /metrics endpoint over the public internet.
+# Prometheus (local docker-compose) scrapes the LIVE Render /metrics endpoint
+# over the public internet — the architecture split: serving on Render,
+# monitoring/orchestration local. /metrics is public and unauthenticated by
+# design (it exposes only aggregate counters/histograms, no payload data), so
+# no auth config is needed here.
+#
+# 15s scrape keeps the free instance permanently warm; that is acceptable NOW
+# because the Phase 2 cold-start measurement (32.5 s) is already committed —
+# see NOTES.md "Phase ordering".
 global:
-  scrape_interval: 30s
-  evaluation_interval: 30s
+  scrape_interval: 15s
+  evaluation_interval: 15s
 
 rule_files:
   - /etc/prometheus/alert_rules.yml
 
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
 scrape_configs:
-  - job_name: churn-serving
+  - job_name: churn-serving-live
     metrics_path: /metrics
     scheme: https
+    tls_config:
+      # Public CA (Render-managed cert) — verify normally, nothing custom.
+      insecure_skip_verify: false
     static_configs:
-      - targets: []   # <render-service-host> set in Phase 5
+      - targets: ["ml-pipeline-with-ci-cd-drift-monitoring.onrender.com"]
+        labels:
+          service: churn-serving
+          env: render-free
