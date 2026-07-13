@@ -1,0 +1,28 @@
+=== cold_start.py output (2026-07-13) ===
+first request fired at 2026-07-13T09:17:12.074318+00:00
+{"cold_latency_s": 32.5, "status": 200, "body": {"churn_probability": 0.890204, "churn": true, "model_source": "bundled:model.joblib"}}
+{"followups": [{"latency_s": 0.228, "status": 200}, {"latency_s": 0.127, "status": 200}, {"latency_s": 0.14, "status": 200}]}
+
+=== warm_load.py output (2026-07-13) ===
+start 2026-07-13T09:18:34.946561+00:00 total=5000 chunk=250 workers=8
+chunk  1/20: ok=250 5xx/neterr=0 p50=413ms max=701ms workers=8
+chunk  2/20: ok=250 5xx/neterr=0 p50=466ms max=664ms workers=8
+chunk  3/20: ok=250 5xx/neterr=0 p50=410ms max=700ms workers=8
+chunk  4/20: ok=250 5xx/neterr=0 p50=479ms max=716ms workers=8
+chunk  5/20: ok=250 5xx/neterr=0 p50=486ms max=707ms workers=8
+chunk  6/20: ok=250 5xx/neterr=0 p50=411ms max=700ms workers=8
+chunk  7/20: ok=250 5xx/neterr=0 p50=414ms max=1007ms workers=8
+chunk  8/20: ok=250 5xx/neterr=0 p50=484ms max=697ms workers=8
+chunk  9/20: ok=250 5xx/neterr=0 p50=413ms max=697ms workers=8
+chunk 10/20: ok=250 5xx/neterr=0 p50=444ms max=800ms workers=8
+chunk 11/20: ok=250 5xx/neterr=0 p50=479ms max=890ms workers=8
+chunk 12/20: ok=250 5xx/neterr=0 p50=410ms max=696ms workers=8
+chunk 13/20: ok=250 5xx/neterr=0 p50=410ms max=696ms workers=8
+chunk 14/20: ok=250 5xx/neterr=0 p50=482ms max=697ms workers=8
+chunk 15/20: ok=250 5xx/neterr=0 p50=462ms max=705ms workers=8
+chunk 16/20: ok=250 5xx/neterr=0 p50=420ms max=1011ms workers=8
+chunk 17/20: ok=250 5xx/neterr=0 p50=421ms max=705ms workers=8
+chunk 18/20: ok=250 5xx/neterr=0 p50=471ms max=693ms workers=8
+chunk 19/20: ok=250 5xx/neterr=0 p50=415ms max=703ms workers=8
+chunk 20/20: ok=250 5xx/neterr=0 p50=487ms max=715ms workers=8
+WARM_SUMMARY {"n": 5000, "concurrency_start": 8, "concurrency_end": 8, "backoff_events": 0, "duration_s": 275.1, "throughput_rps": 18.17, "status_counts": {"200": 5000}, "errors_5xx_or_network": 0, "latency_ms": {"p50": 421.7, "p95": 600.9, "p99": 696.4, "mean": 436.3, "max": 1010.7}}

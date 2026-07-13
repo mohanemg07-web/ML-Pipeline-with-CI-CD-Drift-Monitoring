@@ -1,0 +1,32 @@
+{
+  "generated_at": "2026-07-13T09:23:10Z",
+  "service_url": "https://ml-pipeline-with-ci-cd-drift-monitoring.onrender.com",
+  "deployed_commit": "f5103d1c3f8910348b646ad9152654b17fc6e76f",
+  "server": "Render free tier (512 MB RAM, 0.1 CPU), region Singapore",
+  "client": "residential connection, India (Windows 11, Python 3.10 requests, this repo's scripts)",
+  "service_live_at": "2026-07-13T08:56:22Z",
+  "cold_start": {
+    "n": 1,
+    "endpoint": "/predict",
+    "measured_at": "2026-07-13T09:17:12Z",
+    "latency_s": 32.5,
+    "status": 200,
+    "response_churn_probability": 0.890204,
+    "followup_warm_latencies_s": [0.228, 0.127, 0.14],
+    "spin_down_verification": "Service idle to external traffic for 20.8 min after going live (only Render's internal /health checker every 5s). First request took 32.5 s vs 0.13-0.23 s immediately after: unmistakably cold. Conclusion: Render's internal health checks do NOT keep a free instance warm, so cold start is measurable with the /health check path enabled."
+  },
+  "warm": {
+    "n": 5000,
+    "endpoint": "/predict",
+    "started_at": "2026-07-13T09:18:34Z",
+    "payloads": "varied realistic profiles, seeded rng(42), categories drawn from src.config.CATEGORICAL_DOMAINS",
+    "concurrency": 8,
+    "backoff_events": 0,
+    "duration_s": 275.1,
+    "throughput_rps": 18.17,
+    "status_counts": { "200": 5000 },
+    "errors_5xx_or_network": 0,
+    "latency_ms": { "p50": 421.7, "p95": 600.9, "p99": 696.4, "mean": 436.3, "max": 1010.7 }
+  },
+  "notes": "Latency includes India->Singapore RTT plus model inference on 0.1 CPU. Measured BEFORE any Prometheus scraping exists (NOTES.md phase-ordering constraint): once Phase 5 points Prometheus at the live /metrics endpoint the service stays permanently warm and cold starts become unobservable."
+}
