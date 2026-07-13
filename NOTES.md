@@ -354,3 +354,27 @@ intact. Lesson recorded: evidence links must be validated against `git
 ls-files`, not the working directory. Gate re-run in the clone with the fix:
 34/34 PASS (32 metric checks + referenced-paths + PNGs); live /health and
 /predict verified responding (warm, 0.37 s, registry v2).
+
+## PROJECT COMPLETE (2026-07-14)
+
+Final gate, run against a completely fresh clone of the pushed HEAD
+(`39b0051`), no overlays: **34/34 PASS** — all 32 metric cross-checks against
+the clone's own committed evidence files, every README-referenced path
+resolving (both dashboard PNGs included), and the live demo verified
+responding (`/health` warm in 0.29 s reporting registry champion v2, run
+`4f476fb4...`; `/predict` scoring). The repo is self-contained proof: every
+number in README/RESULTS traces to a committed evidence file, and the gate
+that enforces it caught and fixed one real violation on the way in.
+
+Six phases, six checkpoints, each closed with measured evidence:
+training (0.8527 test ROC-AUC, gated), live serving (5000/5000 zero-error
+load test on 0.1 CPU), the drift->retrain->promote->redeploy loop (166.5 s
+detection-to-live), CI/CD as the sole deploy path (63.2% measured coverage),
+monitoring with a real fired-and-resolved alert, and documentation whose
+claims are mechanically verifiable.
+
+The repo is now FROZEN except for real maintenance. Post-freeze checklist
+lives in "Post-project housekeeping" above — chiefly: the DagsHub token can
+be revoked whenever demos are done (service degrades to the bundled model,
+visibly, by design), and the local monitoring stack must be running for the
+demo to stay warm.
