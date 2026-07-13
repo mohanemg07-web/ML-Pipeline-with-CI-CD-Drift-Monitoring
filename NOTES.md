@@ -279,3 +279,26 @@ the new metrics in a locally-built container; stage 2 (post-deploy) verifies
 `churn_model_info` shows registry v2 LIVE, fires `ChurnClientErrorSpike` for
 real, and captures Alertmanager state. `eval/results/monitoring_verification.json`
 records both stages explicitly.
+
+## Checkpoint 5: monitoring verified live end to end (2026-07-13)
+
+Full record in `eval/results/monitoring_verification.json` (stage 1 pre-deploy
++ stage 2 post-deploy). Instrumentation shipped through the pipeline itself:
+commit `10b10c8` -> Actions run #3 green -> hook deploy
+(<https://github.com/mohanemg07-web/ML-Pipeline-with-CI-CD-Drift-Monitoring/actions/runs/29262816775>).
+
+- **Targets**: `churn-serving-live` UP in local Prometheus (HTTPS scrape of
+  the Render endpoint, warm scrape ~0.15 s).
+- **Model identity proven on the dashboard path**: live `churn_model_info`
+  reports `model_version="2"`, run `4f476fb4...`, matching `/health` exactly.
+- **Latency reality**: in-process P99 under steady live traffic is 9.8 ms
+  (P50 3.5 ms) — the 1.5 s alert threshold is ~150x above normal.
+- **Alert fired FOR REAL** (`ChurnClientErrorSpike`): 1062 invalid payloads
+  (all 422) pushed the matched-route 4xx share to 68%. Lifecycle, all
+  captured from APIs: pending 18:07:15Z -> firing 18:09:15Z -> webhook
+  received 18:09:33Z -> burst stopped -> resolved 18:12:00Z -> resolved
+  webhook 18:12:32Z. `ChurnHigh5xxRate` correctly stayed inactive through the
+  422 burst (server-fault-only selectivity validated); it remains
+  configured-but-not-fired, documented honestly.
+- Grafana dashboard screenshot for the README taken from the file-provisioned
+  dashboard while steady traffic + the 4xx spike were in view.

@@ -1,6 +1,6 @@
 {
   "phase": 5,
-  "generated_at": "2026-07-13T15:29:08+00:00",
+  "generated_at": "2026-07-13T18:13:18+00:00",
   "live_endpoint": "https://ml-pipeline-with-ci-cd-drift-monitoring.onrender.com",
   "stack": "local docker-compose: prometheus v2.55.1 (15s scrape), alertmanager v0.27.0, grafana 11.4.0, alert-webhook (stdlib logger)",
   "config_validation": {
@@ -122,12 +122,90 @@
     ]
   },
   "stage2_post_deploy": {
-    "status": "PENDING - requires the instrumentation commit to deploy via CI (user pushes)",
-    "planned_checks": [
-      "churn_model_info on the LIVE endpoint shows model_version=2 (registry champion), matching /health",
-      "ChurnClientErrorSpike fired for real via a sustained burst of invalid payloads (422s) against the live /predict",
-      "Alertmanager /api/v2/alerts captured while firing; webhook receiver log captured",
-      "ChurnHigh5xxRate remains configured-but-not-fired: it counts only code=~'5..' (server faults); invalid payloads are 422s and deliberately cannot fire it, and we do not crash production to force a 5xx. Its delivery path (Prometheus->Alertmanager->webhook) is identical to the fired 4xx rule."
+    "status": "COMPLETE",
+    "deployed_via": {
+      "commit": "10b10c861f76b9f4cc2d6e4aba13f2628019783b",
+      "actions_run": "https://github.com/mohanemg07-web/ML-Pipeline-with-CI-CD-Drift-Monitoring/actions/runs/29262816775",
+      "conclusion": "success",
+      "note": "CI is the only deploy path (Render auto-deploy off since Phase 4)"
+    },
+    "checks": [
+      {
+        "check": "live_model_identity_v2",
+        "timestamp": "2026-07-13T15:52:00+00:00",
+        "query": "GET live /metrics: churn_model_info; local Prometheus query churn_model_info",
+        "value": {
+          "live_metric": "churn_model_info{model_run_id=\"4f476fb4635e4c19a0a8cec33656e57b\",model_source=\"registry:models:/churn-xgboost@champion\",model_version=\"2\"} 1.0",
+          "matches_health": true,
+          "scraped_into_local_prometheus": true
+        },
+        "ok": true,
+        "note": "The dashboard model-version panel now proves live identity: registry champion v2."
+      },
+      {
+        "check": "client_error_spike_alert_fired_for_real",
+        "timestamp": "2026-07-13T18:10:12+00:00",
+        "query": "sustained invalid-payload burst vs live /predict; poll prometheus /api/v1/alerts",
+        "value": {
+          "burst": {
+            "started_at": "2026-07-13T18:06:46+00:00",
+            "stopped_at": "2026-07-13T18:10:12+00:00",
+            "invalid_requests_sent": 1062,
+            "status_422": 1062,
+            "payload_mutation": "InternetService='Dialup' (outside CATEGORICAL_DOMAINS -> 422)"
+          },
+          "prometheus_transitions": [
+            {
+              "state": "pending",
+              "at": "2026-07-13T18:07:26+00:00",
+              "active_since": "2026-07-13T18:07:15.813384611Z",
+              "value_4xx_share": 0.5217
+            },
+            {
+              "state": "firing",
+              "at": "2026-07-13T18:09:27+00:00",
+              "active_since": "2026-07-13T18:07:15.813384611Z",
+              "value_4xx_share": 0.6823
+            }
+          ],
+          "firing_value_4xx_share": 0.6823,
+          "alertmanager_entry": {
+            "alertname": "ChurnClientErrorSpike",
+            "severity": "warning",
+            "status": "active",
+            "startsAt": "2026-07-13T18:09:15.813Z",
+            "receivers": [
+              "local-webhook"
+            ]
+          }
+        },
+        "ok": true,
+        "note": "All 1062 invalid requests returned 422; valid background traffic kept running throughout."
+      },
+      {
+        "check": "webhook_received_firing_and_resolved",
+        "timestamp": "2026-07-13T18:12:32+00:00",
+        "query": "docker compose logs alert-webhook (Alertmanager webhook POSTs)",
+        "value": {
+          "firing_received_at": "2026-07-13T18:09:33Z",
+          "firing_annotation": "68.23% of matched-route requests are 4xx - broken client or request-schema mismatch.",
+          "resolved_received_at": "2026-07-13T18:12:32Z",
+          "alert_startsAt": "2026-07-13T18:09:15.813Z",
+          "alert_endsAt": "2026-07-13T18:12:00.813Z"
+        },
+        "ok": true,
+        "note": "Complete lifecycle: pending 18:07:15 -> firing 18:09:15 -> webhook 18:09:33 (group_wait 15s) -> burst stopped 18:10:12 -> resolved 18:12:00 -> resolved webhook 18:12:32."
+      },
+      {
+        "check": "high_5xx_rate_rule_not_fired",
+        "timestamp": "2026-07-13T18:13:18+00:00",
+        "query": "ChurnHigh5xxRate state during and after the demonstration",
+        "value": {
+          "state": "inactive throughout"
+        },
+        "ok": true,
+        "note": "BY DESIGN: it counts only code=~'5..' (server faults); the 422 burst correctly did not fire it, which itself validates the rule's selectivity. It stays configured-but-not-fired: we do not crash production to manufacture a 5xx. Its delivery path is identical to the 4xx rule just proven end to end."
+      }
     ]
   }
 }
