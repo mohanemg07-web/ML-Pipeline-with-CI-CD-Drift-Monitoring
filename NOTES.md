@@ -149,3 +149,44 @@ The GitHub repo is **`mohanemg07-web/ML-Pipeline-with-CI-CD-Drift-Monitoring`**
 NOT the earlier planned "End-to-end-MLOps-Pipeline". The DagsHub repo uses the
 same name. Use this URL as `origin` at push time; `.env.example` and the README
 title are already aligned.
+
+## Phase 4: CI design (GitHub Actions)
+
+Workflow: `.github/workflows/ci.yml`, on push/PR to main. Two jobs:
+**checks** (ruff → GE on the committed fixture → pytest+coverage → AUC quality
+gate) then **build-and-deploy** (docker build → GHCR push → Render deploy hook).
+Steps within `checks` share one pip install (cached via `setup-python`), with
+ruff installed alone first so lint fails before the heavy ML-stack install.
+
+- **Self-contained by construction**: no DagsHub credentials anywhere in CI.
+  The quality gate reads the committed `eval/results/training_metrics.json`
+  (champion test ROC-AUC vs `config.AUC_GATE`), not the registry. GE and all
+  tests use `tests/fixtures/sample.csv`. Verified before writing the workflow:
+  all 56 tests run offline with no credentials (retrain-loop HTTP is stubbed
+  with `.invalid` hosts), so **no skip markers were needed**.
+- **CI runs Python 3.11** (matches pyproject + the serving/Airflow images, not
+  the 3.10 local venv). The 3.10-pickled bundle loading under 3.11 is the same
+  path already proven live in Checkpoint 2, and `test_api.py` re-proves it
+  every run.
+- **GHCR**: image `ghcr.io/mohanemg07-web/ml-pipeline-with-ci-cd-drift-monitoring`
+  (lowercased at runtime — GHCR requires it), tagged with the commit SHA and
+  `latest`, pushed with the built-in `GITHUB_TOKEN` (`packages: write`) — no
+  PAT. PRs build the image but don't push or deploy.
+- **Deploy on every push to main, no paths filter** (decided, agreed): the
+  image bakes in src/, serving/, and the bundled model, so a paths filter risks
+  the deployed image silently diverging from HEAD on "non-serving-looking"
+  changes (requirements, config). Free tier makes extra deploys costless. With
+  real build costs, the revisit would be a paths filter covering src/, serving/,
+  requirements*, and the Dockerfile — accepting the maintenance burden of
+  keeping that list honest.
+- **Render auto-deploy: turned OFF in the dashboard** (decided). With
+  auto-deploy on, Render redeploys on every commit *even when CI fails* — a
+  push that fails lint/tests/the quality gate would still go live, making the
+  gate decorative. Single deploy path: deploys happen only through the
+  pipeline, after all checks pass.
+- **Honest note on the two builds**: the Render service is repo-connected, so
+  the deploy hook makes Render rebuild `serving/Dockerfile` from the same
+  commit itself — the GHCR image is a versioned, pullable artifact of that
+  exact SHA, not the bytes Render runs. Same Dockerfile, same commit, same
+  pinned deps, so drift risk is negligible; the production-grade upgrade is
+  switching the Render service to image-backed deploys pulling the GHCR tag.

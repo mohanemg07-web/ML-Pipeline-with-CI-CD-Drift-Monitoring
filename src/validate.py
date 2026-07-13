@@ -107,4 +107,5 @@ def main(path: Path = config.RAW_DATA_PATH) -> int:
 if __name__ == "__main__":
     import sys
 
-    sys.exit(main())
+    csv_path = Path(sys.argv[1]) if len(sys.argv) > 1 else config.RAW_DATA_PATH
+    sys.exit(main(csv_path))
