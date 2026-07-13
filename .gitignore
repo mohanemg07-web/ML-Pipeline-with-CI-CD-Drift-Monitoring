@@ -21,6 +21,9 @@ mlartifacts/
 # --- Great Expectations uncommitted artifacts ---
 gx/uncommitted/
 
+# --- Generated drift reports (numbers live in eval/results JSON) ---
+monitoring/drift_report.html
+
 # --- Secrets / env ---
 .env
 *.env

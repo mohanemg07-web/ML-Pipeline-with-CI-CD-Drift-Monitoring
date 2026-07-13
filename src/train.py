@@ -13,7 +13,7 @@ import argparse
 import json
 import platform
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timezone  # timezone.utc, not 3.11-only datetime.UTC
 
 import matplotlib
 
@@ -180,7 +180,7 @@ def main(n_trials: int = 25, seed: int = config.RANDOM_SEED) -> dict:
 
     gate_passed = xgb_test["roc_auc"] >= config.AUC_GATE
     results = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(timezone.utc).isoformat(),  # noqa: UP017
         "seed": seed,
         "python_version": platform.python_version(),
         "dataset": {

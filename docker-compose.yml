@@ -31,6 +31,8 @@ x-airflow-common: &airflow-common
     - ./data:/opt/airflow/repo/data
     - ./eval:/opt/airflow/repo/eval
     - ./monitoring:/opt/airflow/repo/monitoring
+    - ./models:/opt/airflow/repo/models   # retrain candidate artifact (gitignored)
+    - ./serving:/opt/airflow/repo/serving # bundled fallback model, read-only use
     - airflow-logs:/opt/airflow/logs
   depends_on:
     postgres:

@@ -87,3 +87,16 @@ AUC_GATE = 0.80
 EXPERIMENT_NAME = "churn-xgboost"
 REGISTERED_MODEL_NAME = "churn-xgboost"
 CHAMPION_ALIAS = "champion"
+
+# --- Drift detection (Phase 3) ---
+DRIFT_PSI_THRESHOLD = 0.2   # PSI above this => the feature counts as drifted
+DRIFT_MIN_FEATURES = 2      # retrain triggers when >= this many features drift
+PRODUCTION_BATCH_PATH = DATA_DIR / "production_batch.csv"
+DRIFT_REPORT_JSON = EVAL_RESULTS_DIR / "drift_report.json"
+DRIFT_REPORT_HTML = MONITORING_DIR / "drift_report.html"
+RETRAIN_LOOP_JSON = EVAL_RESULTS_DIR / "retrain_loop.json"
+
+# --- Retrain / promotion gate (Phase 3) ---
+RETRAIN_N_TRIALS = 10        # small Optuna budget for the in-DAG retrain
+PROMOTION_AUC_TOLERANCE = 0.02  # new AUC may trail stale champion by at most this
+RETRAIN_CANDIDATE_PATH = MODELS_DIR / "retrain_candidate.joblib"
